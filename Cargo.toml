@@ -1,0 +1,11 @@
+[package]
+name = "ternary-topology"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Persistent homology for ternary networks"
+repository = "https://github.com/SuperInstance/ternary-topology"
+
+[lib]
+
+[dependencies]

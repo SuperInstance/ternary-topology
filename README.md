@@ -50,6 +50,15 @@ println!("Insulator clusters: {}", insulators.len());
 - Boundary matrix reduction is naive Gaussian elimination, not optimized
 - No support for weighted complexes or filtered simplicial complexes beyond distance
 
+## See Also
+
+- **ternary-graph** — Graph algorithms for ternary-weighted edges
+- **ternary-network** — Network science for ternary-weighted graphs
+- **ternary-geometry** — Geometric operations on ternary coordinates
+- **ternary-mesh** — Mesh network topology and routing
+- **ternary-som** — Self-organizing maps with ternary weights
+- **ternary-lattice** — Lattice structures in ternary spaces
+
 ## License
 
 MIT

@@ -2,10 +2,6 @@
 name = "ternary-topology"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
-description = "Persistent homology for ternary networks"
+description = "Experiment: self-organizing network topology via ternary adjacency. Nodes form edges based on ternary affinity {-1=repel, 0=neutral, +1=attract} with convergence to stable topologies."
+license = "Apache-2.0"
 repository = "https://github.com/SuperInstance/ternary-topology"
-
-[lib]
-
-[dependencies]

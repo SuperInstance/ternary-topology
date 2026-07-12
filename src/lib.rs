@@ -51,7 +51,22 @@ impl TernaryTopology {
         }
     }
 
+    /// Add a node with a ternary state vector.
+    ///
+    /// Panics if `state.len()` does not equal the topology's `dimension`.
+    /// The fixed-dimension invariant is what guarantees that `affinity` and
+    /// `evolve` are well-defined for every pair of nodes; accepting a
+    /// mismatched length would otherwise be truncated silently by `affinity`
+    /// and could index out of bounds inside `evolve`.
     pub fn add_node(&mut self, id: u32, state: Vec<i8>) {
+        assert_eq!(
+            state.len(),
+            self.dimension,
+            "node {} state length {} does not match topology dimension {}",
+            id,
+            state.len(),
+            self.dimension,
+        );
         self.nodes.insert(
             id,
             Node {
@@ -63,9 +78,15 @@ impl TernaryTopology {
     }
 
     /// Compute all edges based on current states.
+    ///
+    /// Edges are emitted in ascending order of node id, with each undirected
+    /// edge normalized so the lower id comes first. Iterating the node set in
+    /// sorted order makes the resulting edge list (and therefore
+    /// `positive_edges` / `negative_edges`) deterministic and reproducible.
     pub fn compute_edges(&mut self) {
         self.edges.clear();
-        let ids: Vec<u32> = self.nodes.keys().cloned().collect();
+        let mut ids: Vec<u32> = self.nodes.keys().cloned().collect();
+        ids.sort_unstable();
         for i in 0..ids.len() {
             for j in (i + 1)..ids.len() {
                 let a = &self.nodes[&ids[i]];
@@ -186,6 +207,33 @@ mod tests {
     }
 
     #[test]
+    fn test_edges_are_deterministic_and_normalized() {
+        // The undirected edge (u,v) is always reported with u < v, and the
+        // full edge list is in ascending order regardless of insertion order.
+        let mut topo = TernaryTopology::new(3);
+        topo.add_node(2, vec![-1, -1, -1]);
+        topo.add_node(0, vec![1, 1, 1]);
+        topo.add_node(1, vec![1, 1, 1]);
+        topo.compute_edges();
+        assert_eq!(topo.positive_edges(), vec![(0, 1)]);
+        assert_eq!(topo.negative_edges(), vec![(0, 2), (1, 2)]);
+    }
+
+    #[test]
+    fn test_quickstart_edge_correctness() {
+        // Mirrors the README Quick Start. Verifies the actual edge set so the
+        // documented example can never silently drift again.
+        let mut topo = TernaryTopology::new(4);
+        topo.add_node(0, vec![1, 1, 1, 1]);
+        topo.add_node(1, vec![1, 1, 0, 1]);
+        topo.add_node(2, vec![-1, -1, -1, 0]);
+        topo.add_node(3, vec![-1, -1, 0, -1]);
+        topo.compute_edges();
+        assert_eq!(topo.positive_edges(), vec![(0, 1), (2, 3)]);
+        assert_eq!(topo.negative_edges(), vec![(0, 2), (0, 3), (1, 2), (1, 3)]);
+    }
+
+    #[test]
     fn test_evolution_converges() {
         let mut topo = TernaryTopology::new(4);
         for i in 0..6 {
@@ -193,6 +241,49 @@ mod tests {
         }
         let counts = topo.evolve(5);
         assert_eq!(counts.len(), 5);
+        // Two clusters of three aligned nodes: 3 positive edges inside each
+        // cluster and 3*3 = 9 negative edges between them. The configuration
+        // is a fixed point of the evolution rule, so the count is constant.
+        assert!(
+            counts.iter().all(|&c| c == 15),
+            "edge counts were {counts:?}"
+        );
+        // The evolution rule pulls each node toward its identical neighbors,
+        // so the two clusters stay at their respective poles.
+        for i in 0..3 {
+            assert_eq!(topo.nodes[&i].ternary_state, vec![1, 1, 1, 1]);
+        }
+        for i in 3..6 {
+            assert_eq!(topo.nodes[&i].ternary_state, vec![-1, -1, -1, -1]);
+        }
+    }
+
+    #[test]
+    fn test_neutral_node_is_isolated() {
+        // A zero state is orthogonal to everyone, so it forms no edges and is
+        // never pulled during evolution (the README "boundary node" case).
+        let mut topo = TernaryTopology::new(3);
+        topo.add_node(0, vec![1, 1, 1]);
+        topo.add_node(1, vec![1, 1, 1]);
+        topo.add_node(2, vec![0, 0, 0]);
+        topo.compute_edges();
+        assert_eq!(topo.positive_edges(), vec![(0, 1)]);
+        assert!(topo.negative_edges().is_empty());
+        assert!(topo.nodes[&2].neighbors.is_empty());
+        topo.evolve(3);
+        assert_eq!(topo.nodes[&2].ternary_state, vec![0, 0, 0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "does not match topology dimension")]
+    fn test_dimension_mismatch_panics() {
+        // The "fixed dimension" invariant must be enforced: a node whose
+        // state length disagrees with the topology dimension used to be
+        // accepted silently, causing affinity to truncate and evolve to risk
+        // an out-of-bounds index. It must now panic.
+        let mut topo = TernaryTopology::new(4);
+        topo.add_node(0, vec![1, 1, 1, 1]);
+        topo.add_node(1, vec![1, 1]); // wrong length
     }
 
     #[test]

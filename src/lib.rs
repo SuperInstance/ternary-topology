@@ -15,14 +15,24 @@ pub struct Node {
 
 impl Node {
     pub fn new(id: u32, dim: usize) -> Self {
-        Self { id, ternary_state: vec![0; dim], neighbors: Vec::new() }
+        Self {
+            id,
+            ternary_state: vec![0; dim],
+            neighbors: Vec::new(),
+        }
     }
 }
 
 /// Ternary affinity between two nodes based on their state vectors.
 pub fn affinity(a: &[i8], b: &[i8]) -> i8 {
     let sum: i32 = a.iter().zip(b).map(|(&x, &y)| x as i32 * y as i32).sum();
-    if sum > 0 { 1 } else if sum < 0 { -1 } else { 0 }
+    if sum > 0 {
+        1
+    } else if sum < 0 {
+        -1
+    } else {
+        0
+    }
 }
 
 /// A self-organizing topology.
@@ -34,11 +44,22 @@ pub struct TernaryTopology {
 
 impl TernaryTopology {
     pub fn new(dimension: usize) -> Self {
-        Self { nodes: HashMap::new(), edges: Vec::new(), dimension }
+        Self {
+            nodes: HashMap::new(),
+            edges: Vec::new(),
+            dimension,
+        }
     }
 
     pub fn add_node(&mut self, id: u32, state: Vec<i8>) {
-        self.nodes.insert(id, Node { id, ternary_state: state, neighbors: Vec::new() });
+        self.nodes.insert(
+            id,
+            Node {
+                id,
+                ternary_state: state,
+                neighbors: Vec::new(),
+            },
+        );
     }
 
     /// Compute all edges based on current states.
@@ -56,7 +77,9 @@ impl TernaryTopology {
             }
         }
         // Update neighbor lists
-        for node in self.nodes.values_mut() { node.neighbors.clear(); }
+        for node in self.nodes.values_mut() {
+            node.neighbors.clear();
+        }
         for &(a, b, aff) in &self.edges {
             if aff > 0 {
                 self.nodes.get_mut(&a).unwrap().neighbors.push(b);
@@ -87,10 +110,19 @@ impl TernaryTopology {
                     }
                 }
                 if count > 0 {
-                    let new_state: Vec<i8> = avg.iter().map(|&v| {
-                        let mean = v / count as f64;
-                        if mean > 0.3 { 1 } else if mean < -0.3 { -1 } else { 0 }
-                    }).collect();
+                    let new_state: Vec<i8> = avg
+                        .iter()
+                        .map(|&v| {
+                            let mean = v / count as f64;
+                            if mean > 0.3 {
+                                1
+                            } else if mean < -0.3 {
+                                -1
+                            } else {
+                                0
+                            }
+                        })
+                        .collect();
                     new_states.insert(id, new_state);
                 }
             }
@@ -102,14 +134,24 @@ impl TernaryTopology {
     }
 
     pub fn positive_edges(&self) -> Vec<(u32, u32)> {
-        self.edges.iter().filter(|(_, _, a)| *a > 0).map(|&(a, b, _)| (a, b)).collect()
+        self.edges
+            .iter()
+            .filter(|(_, _, a)| *a > 0)
+            .map(|&(a, b, _)| (a, b))
+            .collect()
     }
 
     pub fn negative_edges(&self) -> Vec<(u32, u32)> {
-        self.edges.iter().filter(|(_, _, a)| *a < 0).map(|&(a, b, _)| (a, b)).collect()
+        self.edges
+            .iter()
+            .filter(|(_, _, a)| *a < 0)
+            .map(|&(a, b, _)| (a, b))
+            .collect()
     }
 
-    pub fn node_count(&self) -> usize { self.nodes.len() }
+    pub fn node_count(&self) -> usize {
+        self.nodes.len()
+    }
 }
 
 #[cfg(test)]

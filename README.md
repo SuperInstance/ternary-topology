@@ -48,7 +48,7 @@ topo.add_node(3, vec![-1, -1, 0, -1]); // Cluster B (similar)
 topo.compute_edges();
 let positive = topo.positive_edges();  // Edges with affinity +1
 let negative = topo.negative_edges();  // Edges with affinity -1
-println!("Positive connections: {:?}", positive);  // 0↔1
+println!("Positive connections: {:?}", positive);  // 0↔1, 2↔3
 println!("Negative connections: {:?}", negative);  // 0↔2, 0↔3, 1↔2, 1↔3
 
 // Evolve: nodes move toward their positive neighbors
@@ -84,7 +84,7 @@ Examples:
 |--------|-------------|
 | `new(dimension)` | Create empty topology with given state dimension |
 | `add_node(id, state)` | Add node with ternary state vector |
-| `compute_edges()` | Compute all pairwise affinities, build edge list |
+| `compute_edges()` | Compute all pairwise affinities, build edge list (ascending, deterministic) |
 | `evolve(steps)` | Run N evolution steps, return edge counts per step |
 | `positive_edges()` | Edges with affinity +1 (attraction) |
 | `negative_edges()` | Edges with affinity -1 (repulsion) |
@@ -143,7 +143,7 @@ println!("Edge count evolution: {:?}", history);
 
 **Positive-only neighbor influence** — During evolution, only positive-affinity neighbors pull on a node. Negative-affinity neighbors don't push. This is intentional: the negative edges mark boundaries (opposition), and nodes on the boundary of a cluster shouldn't be pushed away — they should be pulled toward their own cluster. If you want repulsion, add it as a separate force.
 
-**Fixed dimension** — All nodes share the same state vector dimension, set at topology creation. This ensures the affinity function works for every pair. Variable-dimension nodes would require padding or projection.
+**Fixed dimension** — All nodes share the same state vector dimension, set at topology creation. `add_node` enforces this by panicking if a state vector's length differs from the topology dimension, which is what guarantees the affinity function is well-defined for every pair. Variable-dimension nodes would require padding or projection.
 
 **HashMap nodes** — Nodes are stored in a `HashMap<u32, Node>` for O(1) lookup by ID. The IDs are user-assigned (not sequential), which supports dynamic node addition without reindexing.
 
@@ -170,8 +170,8 @@ println!("Edge count evolution: {:?}", history);
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust | ~130 |
-| Tests | 6 |
+| Lines of Rust | ~155 |
+| Tests | 11 |
 | Dependencies | 0 (uses `std::collections::HashMap`) |
 
 ## License
